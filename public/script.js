@@ -13,8 +13,8 @@ const sectionOutfits = document.getElementById("sectionOutfits");
 const usernameInput = document.getElementById("usernameInput");
 const downloadCurrentBtn = document.getElementById("downloadCurrentBtn");
 
-// Outfits
-const userIdInput = document.getElementById("userIdInput");
+// Outfits (username)
+const outfitUsernameInput = document.getElementById("outfitUsernameInput");
 const loadBtn = document.getElementById("loadBtn");
 const outfitsGrid = document.getElementById("outfitsGrid");
 
@@ -22,7 +22,7 @@ const FALLBACK_THUMB =
   "https://tr.rbxcdn.com/30DAY-AvatarHeadshot-Png/420/420/AvatarHeadshot/Png/noFilter";
 
 // ======================
-// Small helpers
+// Helpers
 // ======================
 function setStatus(type, title, msg) {
   statusBox.innerHTML = `<span class="badge ${type}">${title}</span>\n${msg}`;
@@ -45,18 +45,13 @@ function cleanUsername(name) {
   return String(name || "").trim();
 }
 
-function cleanUserId(id) {
-  return String(id || "").trim().replace(/\s+/g, "");
-}
-
 // ======================
-// Tabs logic
+// Tabs
 // ======================
 function setTab(mode) {
   if (mode === "current") {
     tabCurrent.classList.add("active");
     tabOutfits.classList.remove("active");
-
     sectionCurrent.classList.remove("hidden");
     sectionOutfits.classList.add("hidden");
 
@@ -64,11 +59,10 @@ function setTab(mode) {
   } else {
     tabOutfits.classList.add("active");
     tabCurrent.classList.remove("active");
-
     sectionOutfits.classList.remove("hidden");
     sectionCurrent.classList.add("hidden");
 
-    setStatus("warn", "Saved Outfits", "Enter a User ID to load outfits, then click one to download.");
+    setStatus("warn", "Saved Outfits", "Enter a username to load outfits, then click one to download.");
   }
 }
 
@@ -100,7 +94,7 @@ async function usernameToUserId(username) {
 }
 
 // ======================
-// Download: Current Avatar ZIP
+// Current Avatar download
 // ======================
 async function downloadCurrentAvatarZip(username) {
   setStatus("warn", "Working", "Looking up username...");
@@ -140,11 +134,9 @@ async function downloadCurrentAvatarZip(username) {
   a.remove();
 
   setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
-
   setStatus("ok", "Started", `Download started:\n${fileName}`);
 }
 
-// Button handler
 downloadCurrentBtn.addEventListener("click", async () => {
   const username = cleanUsername(usernameInput.value);
 
@@ -166,22 +158,20 @@ downloadCurrentBtn.addEventListener("click", async () => {
   }
 });
 
-// Enter key support
 usernameInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") downloadCurrentBtn.click();
 });
 
 // ======================
-// Outfits: load list from backend
+// Outfits backend list (by userId)
 // ======================
-async function loadOutfits(userId) {
-  setStatus("warn", "Loading", "Fetching outfits...");
+async function loadOutfitsByUserId(userId) {
+  setStatus("warn", "Loading", "Fetching outfits list...");
   clearOutfits();
 
   const r = await fetch(`/api/outfits?userId=${encodeURIComponent(userId)}`);
 
-  // backend ALWAYS returns JSON for success + errors, but still safe:
-  let j = null;
+  let j;
   try {
     j = await r.json();
   } catch {
@@ -192,16 +182,16 @@ async function loadOutfits(userId) {
     throw new Error(j?.error || j?.details || `Failed to load outfits (HTTP ${r.status})`);
   }
 
-  if (!j || !Array.isArray(j.outfits)) {
+  if (!Array.isArray(j.outfits)) {
     throw new Error("Backend response missing outfits list.");
   }
 
-  setStatus("ok", "Done", `Fetched: ${j.outfits.length}`);
+  setStatus("ok", "Outfits Loaded", `Fetched: ${j.outfits.length}`);
   return j.outfits;
 }
 
 // ======================
-// Outfits: thumbnails (roproxy)
+// Outfit thumbnails (roproxy)
 // ======================
 async function fetchOutfitThumbnails(outfitIds) {
   const CHUNK_SIZE = 50;
@@ -226,12 +216,13 @@ async function fetchOutfitThumbnails(outfitIds) {
         const state = String(item?.state ?? "").toLowerCase();
 
         if (!id) continue;
+
         if (state === "completed" && item?.imageUrl) {
           map.set(id, item.imageUrl);
         }
       }
     } catch {
-      // ignore chunk errors
+      // ignore
     }
   }
 
@@ -239,7 +230,7 @@ async function fetchOutfitThumbnails(outfitIds) {
 }
 
 // ======================
-// Outfits: download ZIP (backend)
+// Outfit download (backend)
 // ======================
 async function downloadOutfit(outfit) {
   setStatus("warn", "Downloading", `Building ZIP...\n${outfit.name} (${outfit.id})`);
@@ -278,17 +269,16 @@ async function downloadOutfit(outfit) {
   a.remove();
 
   setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
-
   setStatus("ok", "Started", `Download started:\n${fileName}`);
 }
 
 // ======================
-// Render outfit cards
+// Render outfits as big square cards
 // ======================
 async function renderOutfits(outfits) {
   clearOutfits();
 
-  // 1) Render instantly with fallback thumbs
+  // render instantly
   for (const outfit of outfits) {
     const btn = document.createElement("button");
     btn.className = "outfit-btn";
@@ -306,21 +296,11 @@ async function renderOutfits(outfits) {
       const allBtns = outfitsGrid.querySelectorAll("button.outfit-btn");
       allBtns.forEach((b) => (b.disabled = true));
 
-      const oldHTML = btn.innerHTML;
-      btn.innerHTML = `
-        <img class="outfit-thumb" src="${btn.querySelector("img")?.src || FALLBACK_THUMB}" alt="">
-        <div>
-          <div class="outfit-name">Downloading...</div>
-          <div class="outfit-id">Please wait</div>
-        </div>
-      `;
-
       try {
         await downloadOutfit(outfit);
       } catch (e) {
         setStatus("err", "Error", e.message);
       } finally {
-        btn.innerHTML = oldHTML;
         allBtns.forEach((b) => (b.disabled = false));
       }
     });
@@ -328,12 +308,11 @@ async function renderOutfits(outfits) {
     outfitsGrid.appendChild(btn);
   }
 
-  // 2) Load thumbnails after render
+  // thumbnails
   setStatus("warn", "Thumbnails", "Loading thumbnails...");
   const ids = outfits.map((o) => String(o.id));
   const thumbMap = await fetchOutfitThumbnails(ids);
 
-  // 3) Update images
   const buttons = outfitsGrid.querySelectorAll("button.outfit-btn");
   buttons.forEach((btn) => {
     const id = String(btn.dataset.outfitId);
@@ -348,12 +327,14 @@ async function renderOutfits(outfits) {
   setStatus("ok", "Ready", `Outfits loaded: ${outfits.length}`);
 }
 
-// Load outfits button
+// ======================
+// Load outfits using username
+// ======================
 loadBtn.addEventListener("click", async () => {
-  const userId = cleanUserId(userIdInput.value);
+  const username = cleanUsername(outfitUsernameInput.value);
 
-  if (!/^\d+$/.test(userId)) {
-    setStatus("err", "Error", "Enter a valid numeric User ID.");
+  if (!username) {
+    setStatus("err", "Error", "Enter a Roblox username.");
     return;
   }
 
@@ -361,7 +342,10 @@ loadBtn.addEventListener("click", async () => {
   loadBtn.textContent = "Loading...";
 
   try {
-    const outfits = await loadOutfits(userId);
+    setStatus("warn", "Working", "Looking up username...");
+    const userId = await usernameToUserId(username);
+
+    const outfits = await loadOutfitsByUserId(userId);
     await renderOutfits(outfits);
   } catch (e) {
     setStatus("err", "Error", e.message);
@@ -371,12 +355,11 @@ loadBtn.addEventListener("click", async () => {
   }
 });
 
-// Enter key support for userId
-userIdInput.addEventListener("keydown", (e) => {
+outfitUsernameInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") loadBtn.click();
 });
 
 // ======================
-// Initial
+// Init
 // ======================
 setTab("current");
