@@ -6,16 +6,48 @@ function getHashUrl(hash, type = "t") {
   return `https://${type}${(st % 8).toString()}.rbxcdn.com/${hash}`;
 }
 
-async function fetchText(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
-  return await r.text();
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
-async function fetchArrayBuffer(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
-  return await r.arrayBuffer();
+async function fetchTextWithRetry(url, tries = 5) {
+  for (let attempt = 0; attempt < tries; attempt++) {
+    try {
+      const r = await fetch(url);
+
+      if (r.status === 429) {
+        await sleep(800 * (attempt + 1));
+        continue;
+      }
+
+      if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
+
+      return await r.text();
+    } catch (e) {
+      if (attempt === tries - 1) throw e;
+      await sleep(350 * (attempt + 1));
+    }
+  }
+}
+
+async function fetchArrayBufferWithRetry(url, tries = 5) {
+  for (let attempt = 0; attempt < tries; attempt++) {
+    try {
+      const r = await fetch(url);
+
+      if (r.status === 429) {
+        await sleep(800 * (attempt + 1));
+        continue;
+      }
+
+      if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
+
+      return await r.arrayBuffer();
+    } catch (e) {
+      if (attempt === tries - 1) throw e;
+      await sleep(350 * (attempt + 1));
+    }
+  }
 }
 
 function safeFileName(name) {
@@ -40,7 +72,7 @@ export default async function handler(req, res) {
 
     // 1) Get 3D data
     const thumbUrl = `https://thumbnails.roproxy.com/v1/users/outfit-3d?outfitId=${outfitId}`;
-    const thumbJson = JSON.parse(await fetchText(thumbUrl));
+    const thumbJson = JSON.parse(await fetchTextWithRetry(thumbUrl));
 
     let entry = null;
     if (Array.isArray(thumbJson.data) && thumbJson.data.length) entry = thumbJson.data[0];
@@ -50,7 +82,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: "No 3D data available for this outfit" });
     }
 
-    const imageJson = JSON.parse(await fetchText(entry.imageUrl));
+    const imageJson = JSON.parse(await fetchTextWithRetry(entry.imageUrl));
     const { obj, mtl, textures } = imageJson;
 
     if (!obj && !mtl && !textures) {
@@ -63,7 +95,7 @@ export default async function handler(req, res) {
 
     // MTL + textures
     if (mtl) {
-      const mtlText = await fetchText(getHashUrl(mtl));
+      const mtlText = await fetchTextWithRetry(getHashUrl(mtl));
       const textureFiles = Array.isArray(textures) ? textures : [];
 
       let replacedMtl = mtlText;
@@ -80,14 +112,14 @@ export default async function handler(req, res) {
       zip.file(`${baseName}.mtl`, replacedMtl);
 
       for (const t of texEntries) {
-        const ab = await fetchArrayBuffer(t.url);
+        const ab = await fetchArrayBufferWithRetry(t.url);
         zip.file(t.filename, ab);
       }
     }
 
     // OBJ
     if (obj) {
-      const objText = await fetchText(getHashUrl(obj));
+      const objText = await fetchTextWithRetry(getHashUrl(obj));
       zip.file(`${baseName}.obj`, objText);
     }
 

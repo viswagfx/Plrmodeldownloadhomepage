@@ -6,20 +6,52 @@ function getHashUrl(hash, type = "t") {
   return `https://${type}${(st % 8).toString()}.rbxcdn.com/${hash}`;
 }
 
-async function fetchText(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
-  return await r.text();
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
-async function fetchArrayBuffer(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
-  return await r.arrayBuffer();
+async function fetchTextWithRetry(url, tries = 5) {
+  for (let attempt = 0; attempt < tries; attempt++) {
+    try {
+      const r = await fetch(url);
+
+      if (r.status === 429) {
+        await sleep(800 * (attempt + 1));
+        continue;
+      }
+
+      if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
+
+      return await r.text();
+    } catch (e) {
+      if (attempt === tries - 1) throw e;
+      await sleep(350 * (attempt + 1));
+    }
+  }
+}
+
+async function fetchArrayBufferWithRetry(url, tries = 5) {
+  for (let attempt = 0; attempt < tries; attempt++) {
+    try {
+      const r = await fetch(url);
+
+      if (r.status === 429) {
+        await sleep(800 * (attempt + 1));
+        continue;
+      }
+
+      if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
+
+      return await r.arrayBuffer();
+    } catch (e) {
+      if (attempt === tries - 1) throw e;
+      await sleep(350 * (attempt + 1));
+    }
+  }
 }
 
 function safeFileName(name) {
-  return String(name || "Player").replace(/[^a-z0-9]/gi, "_").slice(0, 60);
+  return String(name || "Outfit").replace(/[^a-z0-9]/gi, "_").slice(0, 60);
 }
 
 export default async function handler(req, res) {
@@ -31,38 +63,39 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   try {
-    const userId = String(req.body?.userId || "").trim();
-    const username = String(req.body?.username || "Player").trim();
+    const outfitId = String(req.body?.outfitId || "").trim();
+    const outfitName = String(req.body?.outfitName || "Outfit").trim();
 
-    if (!/^\d+$/.test(userId)) {
-      return res.status(400).json({ error: "Invalid userId" });
+    if (!/^\d+$/.test(outfitId)) {
+      return res.status(400).json({ error: "Invalid outfitId" });
     }
 
-    // ✅ current avatar 3D
-    const thumbUrl = `https://thumbnails.roproxy.com/v1/users/avatar-3d?userId=${userId}`;
-    const thumbJson = JSON.parse(await fetchText(thumbUrl));
+    // 1) Get 3D data
+    const thumbUrl = `https://thumbnails.roproxy.com/v1/users/outfit-3d?outfitId=${outfitId}`;
+    const thumbJson = JSON.parse(await fetchTextWithRetry(thumbUrl));
 
     let entry = null;
     if (Array.isArray(thumbJson.data) && thumbJson.data.length) entry = thumbJson.data[0];
     else if (thumbJson.imageUrl) entry = thumbJson;
 
     if (!entry?.imageUrl) {
-      return res.status(404).json({ error: "No 3D avatar data available" });
+      return res.status(404).json({ error: "No 3D data available for this outfit" });
     }
 
-    const modelJson = JSON.parse(await fetchText(entry.imageUrl));
-    const { obj, mtl, textures } = modelJson;
+    const imageJson = JSON.parse(await fetchTextWithRetry(entry.imageUrl));
+    const { obj, mtl, textures } = imageJson;
 
     if (!obj && !mtl && !textures) {
       return res.status(500).json({ error: "3D JSON missing obj/mtl/textures" });
     }
 
+    // 2) Build zip
     const zip = new JSZip();
-    const baseName = `User_${userId}_${safeFileName(username)}_CurrentAvatar`;
+    const baseName = `Outfit_${outfitId}_${safeFileName(outfitName)}`;
 
     // MTL + textures
     if (mtl) {
-      const mtlText = await fetchText(getHashUrl(mtl));
+      const mtlText = await fetchTextWithRetry(getHashUrl(mtl));
       const textureFiles = Array.isArray(textures) ? textures : [];
 
       let replacedMtl = mtlText;
@@ -79,21 +112,23 @@ export default async function handler(req, res) {
       zip.file(`${baseName}.mtl`, replacedMtl);
 
       for (const t of texEntries) {
-        const ab = await fetchArrayBuffer(t.url);
+        const ab = await fetchArrayBufferWithRetry(t.url);
         zip.file(t.filename, ab);
       }
     }
 
     // OBJ
     if (obj) {
-      const objText = await fetchText(getHashUrl(obj));
+      const objText = await fetchTextWithRetry(getHashUrl(obj));
       zip.file(`${baseName}.obj`, objText);
     }
 
-    zip.file(`${baseName}_meta.json`, JSON.stringify(modelJson, null, 2));
+    // Meta
+    zip.file(`${baseName}_meta.json`, JSON.stringify(imageJson, null, 2));
 
     const zipBuf = await zip.generateAsync({ type: "nodebuffer" });
 
+    // 3) Return zip
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", `attachment; filename="${baseName}.zip"`);
     return res.status(200).send(zipBuf);
