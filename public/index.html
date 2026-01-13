@@ -256,6 +256,41 @@
       from { opacity:0; transform: translateY(10px); }
       to { opacity:1; transform: translateY(0); }
     }
+    .outfit-thumb-wrap{
+  position: relative;
+  width: 100%;
+}
+
+.outfit-loading-overlay{
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.outfit-btn.is-loading .outfit-loading-overlay{
+  opacity: 1;
+}
+
+.spinner{
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 4px solid rgba(255,255,255,0.25);
+  border-top-color: #ff3333;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
   </style>
 </head>
 

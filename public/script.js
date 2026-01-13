@@ -21,6 +21,9 @@ const outfitsGrid = document.getElementById("outfitsGrid");
 const FALLBACK_THUMB =
   "https://tr.rbxcdn.com/30DAY-AvatarHeadshot-Png/420/420/AvatarHeadshot/Png/noFilter";
 
+// prevent spam clicks while downloading an outfit
+let outfitDownloadBusy = false;
+
 // ======================
 // Helpers
 // ======================
@@ -46,12 +49,22 @@ function cleanUsername(name) {
 }
 
 // ======================
+// Warm-up (fix Vercel cold-start 404)
+// ======================
+async function warmUpOutfitApi() {
+  try {
+    await fetch("/api/outfit-download", { method: "OPTIONS" });
+  } catch {}
+}
+
+// ======================
 // Tabs
 // ======================
 function setTab(mode) {
   if (mode === "current") {
     tabCurrent.classList.add("active");
     tabOutfits.classList.remove("active");
+
     sectionCurrent.classList.remove("hidden");
     sectionOutfits.classList.add("hidden");
 
@@ -59,8 +72,12 @@ function setTab(mode) {
   } else {
     tabOutfits.classList.add("active");
     tabCurrent.classList.remove("active");
+
     sectionOutfits.classList.remove("hidden");
     sectionCurrent.classList.add("hidden");
+
+    // warm up outfit download function so first click doesn't 404
+    warmUpOutfitApi();
 
     setStatus("warn", "Saved Outfits", "Enter a username to load outfits, then click one to download.");
   }
@@ -70,7 +87,7 @@ tabCurrent.addEventListener("click", () => setTab("current"));
 tabOutfits.addEventListener("click", () => setTab("outfits"));
 
 // ======================
-// API: username -> userId
+// API: username -> userId (backend)
 // ======================
 async function usernameToUserId(username) {
   const r = await fetch("/api/userid", {
@@ -94,7 +111,7 @@ async function usernameToUserId(username) {
 }
 
 // ======================
-// Current Avatar download
+// Current Avatar ZIP download (backend)
 // ======================
 async function downloadCurrentAvatarZip(username) {
   setStatus("warn", "Working", "Looking up username...");
@@ -163,7 +180,7 @@ usernameInput.addEventListener("keydown", (e) => {
 });
 
 // ======================
-// Outfits backend list (by userId)
+// Outfits: load list (backend) by userId
 // ======================
 async function loadOutfitsByUserId(userId) {
   setStatus("warn", "Loading", "Fetching outfits list...");
@@ -186,12 +203,14 @@ async function loadOutfitsByUserId(userId) {
     throw new Error("Backend response missing outfits list.");
   }
 
+  // ✅ keep fetched visible (you wanted this)
   setStatus("ok", "Outfits Loaded", `Fetched: ${j.outfits.length}`);
+
   return j.outfits;
 }
 
 // ======================
-// Outfit thumbnails (roproxy)
+// Outfits thumbnails (roproxy direct)
 // ======================
 async function fetchOutfitThumbnails(outfitIds) {
   const CHUNK_SIZE = 50;
@@ -222,7 +241,7 @@ async function fetchOutfitThumbnails(outfitIds) {
         }
       }
     } catch {
-      // ignore
+      // ignore thumbnail chunk errors
     }
   }
 
@@ -230,7 +249,7 @@ async function fetchOutfitThumbnails(outfitIds) {
 }
 
 // ======================
-// Outfit download (backend)
+// Outfit download ZIP (backend)
 // ======================
 async function downloadOutfit(outfit) {
   setStatus("warn", "Downloading", `Building ZIP...\n${outfit.name} (${outfit.id})`);
@@ -273,10 +292,13 @@ async function downloadOutfit(outfit) {
 }
 
 // ======================
-// Render outfits as big square cards
+// Render outfits (big square cards)
 // ======================
 async function renderOutfits(outfits) {
   clearOutfits();
+
+  // keep "Fetched: X" visible
+  setStatus("ok", "Outfits Loaded", `Fetched: ${outfits.length}`);
 
   // render instantly
   for (const outfit of outfits) {
@@ -285,7 +307,13 @@ async function renderOutfits(outfits) {
     btn.dataset.outfitId = outfit.id;
 
     btn.innerHTML = `
-      <img class="outfit-thumb" src="${FALLBACK_THUMB}" alt="">
+      <div class="outfit-thumb-wrap">
+        <img class="outfit-thumb" src="${FALLBACK_THUMB}" alt="">
+        <div class="outfit-loading-overlay">
+          <div class="spinner"></div>
+        </div>
+      </div>
+
       <div>
         <div class="outfit-name">${escapeHtml(outfit.name)}</div>
         <div class="outfit-id">ID: ${escapeHtml(outfit.id)}</div>
@@ -293,15 +321,22 @@ async function renderOutfits(outfits) {
     `;
 
     btn.addEventListener("click", async () => {
+      if (outfitDownloadBusy) return;
+      outfitDownloadBusy = true;
+
       const allBtns = outfitsGrid.querySelectorAll("button.outfit-btn");
       allBtns.forEach((b) => (b.disabled = true));
+
+      btn.classList.add("is-loading");
 
       try {
         await downloadOutfit(outfit);
       } catch (e) {
         setStatus("err", "Error", e.message);
       } finally {
+        btn.classList.remove("is-loading");
         allBtns.forEach((b) => (b.disabled = false));
+        outfitDownloadBusy = false;
       }
     });
 
@@ -309,7 +344,7 @@ async function renderOutfits(outfits) {
   }
 
   // thumbnails
-  setStatus("warn", "Thumbnails", "Loading thumbnails...");
+  setStatus("warn", "Thumbnails", `Loading thumbnails...\nOutfits: ${outfits.length}`);
   const ids = outfits.map((o) => String(o.id));
   const thumbMap = await fetchOutfitThumbnails(ids);
 
@@ -324,11 +359,12 @@ async function renderOutfits(outfits) {
     }
   });
 
-  setStatus("ok", "Ready", `Outfits loaded: ${outfits.length}`);
+  setStatus("ok", "Ready", `Outfits ready: ${outfits.length}`);
 }
 
+
 // ======================
-// Load outfits using username
+// Load outfits button (username -> userId -> outfits)
 // ======================
 loadBtn.addEventListener("click", async () => {
   const username = cleanUsername(outfitUsernameInput.value);
