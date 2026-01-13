@@ -261,44 +261,100 @@ async function fetchOutfitThumbnails(outfitIds) {
 // ======================
 // Outfit download ZIP (backend)
 // ======================
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 async function downloadOutfit(outfit) {
-  setStatus("warn", "Downloading", `Building ZIP...\n${outfit.name} (${outfit.id})`);
+  const maxTries = 4;
 
-  const r = await fetch("/api/outfit-download", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      outfitId: outfit.id,
-      outfitName: outfit.name
-    })
-  });
-
-  if (!r.ok) {
-    let msg = `Download failed (HTTP ${r.status})`;
+  for (let attempt = 1; attempt <= maxTries; attempt++) {
     try {
-      const j = await r.json();
-      msg = j?.error || j?.details || msg;
-    } catch {
-      try {
-        const t = await r.text();
-        if (t) msg = t.slice(0, 200);
-      } catch {}
+      setStatus(
+        "warn",
+        attempt === 1 ? "Downloading" : "Retrying",
+        `Building ZIP...\n${outfit.name} (${outfit.id})\nAttempt: ${attempt}/${maxTries}`
+      );
+
+      const r = await fetch("/api/outfit-download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          outfitId: outfit.id,
+          outfitName: outfit.name
+        })
+      });
+
+      // ✅ Vercel cold-start / routing delay -> retry
+      if (r.status === 404 && attempt < maxTries) {
+        setStatus(
+          "warn",
+          "Warming up server",
+          `Outfit API not ready yet (404)\nRetrying... (${attempt}/${maxTries})`
+        );
+        await sleep(800 * attempt);
+        continue;
+      }
+
+      // ✅ rate limited -> retry
+      if (r.status === 429 && attempt < maxTries) {
+        setStatus(
+          "warn",
+          "Rate Limited",
+          `Got 429 too many requests\nRetrying... (${attempt}/${maxTries})`
+        );
+        await sleep(1200 * attempt);
+        continue;
+      }
+
+      // ❌ other errors -> show message (no auto retry unless you want)
+      if (!r.ok) {
+        let msg = `Download failed (HTTP ${r.status})`;
+
+        try {
+          const j = await r.json();
+          msg = j?.error || j?.details || msg;
+        } catch {
+          try {
+            const t = await r.text();
+            if (t) msg = t.slice(0, 200);
+          } catch {}
+        }
+
+        throw new Error(msg);
+      }
+
+      // ✅ success -> download zip
+      const blob = await r.blob();
+      const fileName = `Outfit_${outfit.id}.zip`;
+
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
+
+      setStatus("ok", "Started", `Download started:\n${fileName}`);
+      return;
+    } catch (e) {
+      // ✅ retry for network/cold errors
+      if (attempt < maxTries) {
+        setStatus(
+          "warn",
+          "Retrying",
+          `${e.message}\nRetrying... (${attempt}/${maxTries})`
+        );
+        await sleep(800 * attempt);
+        continue;
+      }
+
+      // ❌ final fail
+      throw e;
     }
-    throw new Error(msg);
   }
-
-  const blob = await r.blob();
-  const fileName = `Outfit_${outfit.id}.zip`;
-
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-
-  setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
-  setStatus("ok", "Started", `Download started:\n${fileName}`);
 }
 
 // ======================
