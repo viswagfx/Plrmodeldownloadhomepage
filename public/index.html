@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;900&display=swap" rel="stylesheet">
+  <title>Avatar Tools | Viswa</title>
+
+  <style>
+    body{
+      font-family:'Poppins',sans-serif;
+      margin:0;
+      padding:0;
+      background:#1a1d24;
+      color:white;
+      min-height:100vh;
+      overflow-x:hidden;
+    }
+
+    .bg-container{ position:fixed; inset:0; z-index:-1; overflow:hidden; }
+    .bg{ filter:blur(40px); width:100%; height:100%; object-fit:cover; transform:scale(1.15); }
+
+    .container{
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 20px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+    }
+
+    header{
+      text-align:center;
+      margin-bottom:18px;
+      animation: fadeInDown 0.8s ease;
+    }
+
+    header h1{
+      font-size: clamp(36px, 6vw, 70px);
+      font-weight: 900;
+      margin:0;
+      text-shadow:3px 3px 4px rgba(0,0,0,0.3);
+      letter-spacing:-2px;
+    }
+
+    header p{
+      margin-top:8px;
+      opacity:0.8;
+      font-weight:300;
+      font-size:16px;
+    }
+
+    .tabs{
+      width:100%;
+      display:flex;
+      gap:12px;
+      justify-content:center;
+      margin: 10px 0 18px 0;
+    }
+
+    .tab-btn{
+      padding: 12px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.9);
+      cursor:pointer;
+      font-weight:800;
+      letter-spacing:0.4px;
+      transition:0.2s;
+    }
+
+    .tab-btn:hover{
+      transform: translateY(-2px);
+      background: rgba(255,255,255,0.1);
+    }
+
+    .tab-btn.active{
+      background:#ff3333;
+      border-color: rgba(255,51,51,0.5);
+      color:white;
+      box-shadow: 0 12px 30px rgba(255,51,51,0.2);
+    }
+
+    .card{
+      width:100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 26px;
+      backdrop-filter: blur(10px);
+      animation: fadeIn 0.6s ease backwards;
+      overflow:hidden;
+    }
+
+    .section-title{
+      width:100%;
+      font-size:18px;
+      font-weight:800;
+      margin:0 0 18px 0;
+      padding-bottom:10px;
+      border-bottom:2px solid rgba(255,255,255,0.08);
+      color:#ff3333;
+      text-transform:uppercase;
+      letter-spacing:2px;
+    }
+
+    .hint{
+      font-size: 13px;
+      opacity: 0.75;
+      margin-top: -10px;
+      margin-bottom: 18px;
+    }
+
+    label{ display:block; font-size:14px; opacity:.85; margin-bottom:8px; }
+
+    input{
+      width:100%;
+      padding:14px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.35);
+      color:white;
+      outline:none;
+      font-size:15px;
+      transition:0.2s;
+      box-sizing: border-box;
+    }
+
+    input:focus{
+      border-color: rgba(255,51,51,0.6);
+      box-shadow: 0 0 0 4px rgba(255,51,51,0.12);
+    }
+
+    button{
+      padding:14px 16px;
+      border:none;
+      border-radius:16px;
+      cursor:pointer;
+      font-weight:800;
+      font-size:14px;
+      transition:0.2s;
+    }
+
+    button:disabled{
+      opacity:0.6;
+      cursor:not-allowed;
+      transform:none !important;
+    }
+
+    .primary{
+      width:100%;
+      margin-top:14px;
+      background:#ff3333;
+      color:white;
+    }
+
+    .primary:hover{
+      background:#ff4b4b;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(255,51,51,0.25);
+    }
+
+    .status{
+      margin-top:18px;
+      background: rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius:16px;
+      padding:14px;
+      font-size:14px;
+      line-height:1.5;
+      white-space:pre-wrap;
+      max-height:240px;
+      overflow:auto;
+    }
+
+    .badge{
+      display:inline-block;
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      margin-bottom:10px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:1px;
+    }
+
+    .badge.warn{ background: rgba(255,204,0,0.12); border:1px solid rgba(255,204,0,0.22); color:#ffd35a; }
+    .badge.ok{ background: rgba(0,255,127,0.15); border:1px solid rgba(0,255,127,0.25); color:#7cffb7; }
+    .badge.err{ background: rgba(255,51,51,0.12); border:1px solid rgba(255,51,51,0.28); color:#ff6b6b; }
+
+    .outfits{
+      margin-top: 18px;
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .outfit-btn{
+      text-align:left;
+      padding:16px;
+      border-radius:20px;
+      background: rgba(255,255,255,0.05);
+      border:1px solid rgba(255,255,255,0.12);
+      color:white;
+      transition:0.2s;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      overflow:hidden;
+    }
+
+    .outfit-btn:hover{
+      background: rgba(255,255,255,0.09);
+      transform: translateY(-4px);
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    .outfit-thumb{
+      width:100%;
+      aspect-ratio: 1 / 1;
+      border-radius:18px;
+      object-fit:cover;
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .outfit-name{
+      font-size:16px;
+      font-weight:900;
+      margin:0;
+      line-height:1.2;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .outfit-id{
+      font-size:12px;
+      opacity:0.65;
+      margin-top:6px;
+    }
+
+    .hidden{ display:none; }
+
+    @keyframes fadeInDown {
+      from { opacity:0; transform: translateY(-20px); }
+      to { opacity:1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity:0; transform: translateY(10px); }
+      to { opacity:1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg-container">
+    <img class="bg" src="https://img.freepik.com/free-vector/circles-background-dark-tones_60389-166.jpg" alt="Background">
+  </div>
+
+  <div class="container">
+    <header>
+      <h1>AVATAR TOOLS</h1>
+      <p>Download Roblox avatar 3D files</p>
+    </header>
+
+    <div class="tabs">
+      <button id="tabCurrent" class="tab-btn active">Current Avatar</button>
+      <button id="tabOutfits" class="tab-btn">Saved Outfits</button>
+    </div>
+
+    <div class="card">
+      <!-- CURRENT AVATAR -->
+      <div id="sectionCurrent">
+        <div class="section-title">Current Avatar (3D ZIP)</div>
+        <div class="hint">Download a player’s current avatar model as OBJ/MTL/textures.</div>
+
+        <label for="usernameInput">Roblox Username</label>
+        <input id="usernameInput" placeholder="example: Builderman" />
+
+        <button id="downloadCurrentBtn" class="primary">Download Current Avatar ZIP</button>
+      </div>
+
+      <!-- OUTFITS -->
+      <div id="sectionOutfits" class="hidden">
+        <div class="section-title">Saved Outfits (3D ZIP)</div>
+        <div class="hint">Browse outfits + thumbnails, then download any outfit as a ZIP.</div>
+
+        <label for="userIdInput">Roblox User ID</label>
+        <input id="userIdInput" placeholder="example: 1" />
+
+        <button id="loadBtn" class="primary">Load Outfits</button>
+
+        <div class="outfits" id="outfitsGrid"></div>
+      </div>
+
+      <div class="status" id="statusBox">
+        <span class="badge warn">Ready</span>
+        Choose a mode above.
+      </div>
+    </div>
+  </div>
+
+  <script src="./script.js"></script>
+</body>
+</html>

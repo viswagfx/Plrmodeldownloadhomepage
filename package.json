@@ -1,0 +1,7 @@
+{
+  "name": "outfit-3d-downloader",
+  "private": true,
+  "dependencies": {
+    "jszip": "^3.10.1"
+  }
+}
