@@ -3,7 +3,9 @@
 // ======================
 const statusCurrent = document.getElementById("statusCurrent");
 const statusOutfits = document.getElementById("statusOutfits");
-let statusBox = statusCurrent; // active status box
+
+// this will point to whichever tab is open
+let statusBox = statusCurrent;
 
 // Tabs
 const tabCurrent = document.getElementById("tabCurrent");
@@ -30,8 +32,11 @@ let outfitDownloadBusy = false;
 // Helpers
 // ======================
 function setStatus(type, title, msg) {
+  if (!statusBox) return;
+
   statusBox.innerHTML = `<span class="badge ${type}">${title}</span>\n${msg}`;
 }
+
 
 function escapeHtml(str) {
   return String(str)
@@ -70,6 +75,8 @@ function setTab(mode) {
     sectionCurrent.classList.remove("hidden");
     sectionOutfits.classList.add("hidden");
 
+    statusBox = statusCurrent; // ✅ switch status target
+
     setStatus("warn", "Current Avatar", "Enter a username and download their current avatar ZIP.");
   } else {
     tabOutfits.classList.add("active");
@@ -78,12 +85,13 @@ function setTab(mode) {
     sectionOutfits.classList.remove("hidden");
     sectionCurrent.classList.add("hidden");
 
-    // warm up outfit download function so first click doesn't 404
-    warmUpOutfitApi();
+    statusBox = statusOutfits; // ✅ switch status target
 
+    warmUpOutfitApi();
     setStatus("warn", "Saved Outfits", "Enter a username to load outfits, then click one to download.");
   }
 }
+
 
 tabCurrent.addEventListener("click", () => setTab("current"));
 tabOutfits.addEventListener("click", () => setTab("outfits"));
