@@ -163,10 +163,10 @@
       box-shadow: 0 12px 30px rgba(255,51,51,0.25);
     }
 
-    /* ✅ status box now sits ABOVE outfits cards */
+    /* ✅ status box */
     .status{
       margin-top:18px;
-      margin-bottom:18px; /* ✅ gives gap before outfit cards */
+      margin-bottom:18px;
       background: rgba(0,0,0,0.35);
       border:1px solid rgba(255,255,255,0.12);
       border-radius:16px;
@@ -194,7 +194,6 @@
     .badge.err{ background: rgba(255,51,51,0.12); border:1px solid rgba(255,51,51,0.28); color:#ff6b6b; }
 
     .outfits{
-      margin-top: 0; /* ✅ since status box already gives spacing */
       display:grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 16px;
@@ -332,14 +331,19 @@
 
         <button id="loadBtn" class="primary">Load Outfits</button>
 
-        <!-- ✅ outfitsGrid stays here, statusBox is above it -->
+        <!-- ✅ STATUS IS NOW ABOVE THE GRID -->
+        <div class="status" id="statusBox">
+          <span class="badge warn">Ready</span>
+          Enter a username and click "Load Outfits".
+        </div>
+
         <div class="outfits" id="outfitsGrid"></div>
       </div>
 
-      <!-- ✅ STATUS IS ALWAYS ABOVE OUTFIT GRID -->
-      <div class="status" id="statusBox">
+      <!-- ✅ this one is only for Current Avatar mode -->
+      <div class="status" id="statusBoxCurrent">
         <span class="badge warn">Ready</span>
-        Choose a mode above.
+        Enter a username and click "Download Current Avatar ZIP".
       </div>
     </div>
   </div>

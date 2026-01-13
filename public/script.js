@@ -1,7 +1,7 @@
 // ======================
 // Elements
 // ======================
-const statusBox = document.getElementById("statusBox");
+const statusBox = document.getElementById("statusBoxCurrent");
 
 // Tabs
 const tabCurrent = document.getElementById("tabCurrent");
