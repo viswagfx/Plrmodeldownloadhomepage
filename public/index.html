@@ -163,7 +163,6 @@
       box-shadow: 0 12px 30px rgba(255,51,51,0.25);
     }
 
-    /* ✅ status box */
     .status{
       margin-top:18px;
       margin-bottom:18px;
@@ -319,6 +318,12 @@
         <input id="usernameInput" placeholder="example: Builderman" />
 
         <button id="downloadCurrentBtn" class="primary">Download Current Avatar ZIP</button>
+
+        <!-- ✅ current status -->
+        <div class="status" id="statusCurrent">
+          <span class="badge warn">Ready</span>
+          Enter a username and click "Download Current Avatar ZIP".
+        </div>
       </div>
 
       <!-- OUTFITS -->
@@ -331,19 +336,13 @@
 
         <button id="loadBtn" class="primary">Load Outfits</button>
 
-        <!-- ✅ STATUS IS NOW ABOVE THE GRID -->
-        <div class="status" id="statusBox">
+        <!-- ✅ outfits status ABOVE grid -->
+        <div class="status" id="statusOutfits">
           <span class="badge warn">Ready</span>
           Enter a username and click "Load Outfits".
         </div>
 
         <div class="outfits" id="outfitsGrid"></div>
-      </div>
-
-      <!-- ✅ this one is only for Current Avatar mode -->
-      <div class="status" id="statusBoxCurrent">
-        <span class="badge warn">Ready</span>
-        Enter a username and click "Download Current Avatar ZIP".
       </div>
     </div>
   </div>

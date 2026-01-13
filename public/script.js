@@ -1,7 +1,9 @@
 // ======================
 // Elements
 // ======================
-const statusBox = document.getElementById("statusBoxCurrent");
+const statusCurrent = document.getElementById("statusCurrent");
+const statusOutfits = document.getElementById("statusOutfits");
+let statusBox = statusCurrent; // active status box
 
 // Tabs
 const tabCurrent = document.getElementById("tabCurrent");
