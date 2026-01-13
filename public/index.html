@@ -163,8 +163,10 @@
       box-shadow: 0 12px 30px rgba(255,51,51,0.25);
     }
 
+    /* ✅ status box now sits ABOVE outfits cards */
     .status{
       margin-top:18px;
+      margin-bottom:18px; /* ✅ gives gap before outfit cards */
       background: rgba(0,0,0,0.35);
       border:1px solid rgba(255,255,255,0.12);
       border-radius:16px;
@@ -192,7 +194,7 @@
     .badge.err{ background: rgba(255,51,51,0.12); border:1px solid rgba(255,51,51,0.28); color:#ff6b6b; }
 
     .outfits{
-      margin-top: 18px;
+      margin-top: 0; /* ✅ since status box already gives spacing */
       display:grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 16px;
@@ -216,6 +218,11 @@
       background: rgba(255,255,255,0.09);
       transform: translateY(-4px);
       border-color: rgba(255,255,255,0.18);
+    }
+
+    .outfit-thumb-wrap{
+      position: relative;
+      width: 100%;
     }
 
     .outfit-thumb{
@@ -247,6 +254,34 @@
 
     .hidden{ display:none; }
 
+    .outfit-loading-overlay{
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .outfit-btn.is-loading .outfit-loading-overlay{
+      opacity: 1;
+    }
+
+    .spinner{
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      border: 4px solid rgba(255,255,255,0.25);
+      border-top-color: #ff3333;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     @keyframes fadeInDown {
       from { opacity:0; transform: translateY(-20px); }
       to { opacity:1; transform: translateY(0); }
@@ -256,41 +291,6 @@
       from { opacity:0; transform: translateY(10px); }
       to { opacity:1; transform: translateY(0); }
     }
-    .outfit-thumb-wrap{
-  position: relative;
-  width: 100%;
-}
-
-.outfit-loading-overlay{
-  position: absolute;
-  inset: 0;
-  border-radius: 18px;
-  background: rgba(0,0,0,0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-}
-
-.outfit-btn.is-loading .outfit-loading-overlay{
-  opacity: 1;
-}
-
-.spinner{
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
-  border: 4px solid rgba(255,255,255,0.25);
-  border-top-color: #ff3333;
-  animation: spin 0.9s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
   </style>
 </head>
 
@@ -327,15 +327,16 @@
         <div class="section-title">Saved Outfits (3D ZIP)</div>
         <div class="hint">Browse outfits + thumbnails, then download any outfit as a ZIP.</div>
 
-       <label for="outfitUsernameInput">Roblox Username</label>
-      <input id="outfitUsernameInput" placeholder="example: Builderman" />
+        <label for="outfitUsernameInput">Roblox Username</label>
+        <input id="outfitUsernameInput" placeholder="example: Builderman" />
 
-      <button id="loadBtn" class="primary">Load Outfits</button>
+        <button id="loadBtn" class="primary">Load Outfits</button>
 
-
+        <!-- ✅ outfitsGrid stays here, statusBox is above it -->
         <div class="outfits" id="outfitsGrid"></div>
       </div>
 
+      <!-- ✅ STATUS IS ALWAYS ABOVE OUTFIT GRID -->
       <div class="status" id="statusBox">
         <span class="badge warn">Ready</span>
         Choose a mode above.
