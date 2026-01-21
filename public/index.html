@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,254 +10,287 @@
   <title>Avatar Tools | Viswa</title>
 
   <style>
-    body{
-      font-family:'Poppins',sans-serif;
-      margin:0;
-      padding:0;
-      background:#1a1d24;
-      color:white;
-      min-height:100vh;
-      overflow-x:hidden;
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #1a1d24;
+      color: white;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
 
-    .bg-container{ position:fixed; inset:0; z-index:-1; overflow:hidden; }
-    .bg{ filter:blur(40px); width:100%; height:100%; object-fit:cover; transform:scale(1.15); }
+    .bg-container {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      overflow: hidden;
+    }
 
-    .container{
+    .bg {
+      filter: blur(40px);
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scale(1.15);
+    }
+
+    .container {
       max-width: 1100px;
       margin: 0 auto;
       padding: 32px 20px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
-    header{
-      text-align:center;
-      margin-bottom:18px;
+    header {
+      text-align: center;
+      margin-bottom: 18px;
       animation: fadeInDown 0.8s ease;
     }
 
-    header h1{
+    header h1 {
       font-size: clamp(36px, 6vw, 70px);
       font-weight: 900;
-      margin:0;
-      text-shadow:3px 3px 4px rgba(0,0,0,0.3);
-      letter-spacing:-2px;
+      margin: 0;
+      text-shadow: 3px 3px 4px rgba(0, 0, 0, 0.3);
+      letter-spacing: -2px;
     }
 
-    header p{
-      margin-top:8px;
-      opacity:0.8;
-      font-weight:300;
-      font-size:16px;
+    header p {
+      margin-top: 8px;
+      opacity: 0.8;
+      font-weight: 300;
+      font-size: 16px;
     }
 
-    .tabs{
-      width:100%;
-      display:flex;
-      gap:12px;
-      justify-content:center;
+    .tabs {
+      width: 100%;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
       margin: 10px 0 18px 0;
     }
 
-    .tab-btn{
+    .tab-btn {
       padding: 12px 18px;
       border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.9);
-      cursor:pointer;
-      font-weight:800;
-      letter-spacing:0.4px;
-      transition:0.2s;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.9);
+      cursor: pointer;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      transition: 0.2s;
     }
 
-    .tab-btn:hover{
+    .tab-btn:hover {
       transform: translateY(-2px);
-      background: rgba(255,255,255,0.1);
+      background: rgba(255, 255, 255, 0.1);
     }
 
-    .tab-btn.active{
-      background:#ff3333;
-      border-color: rgba(255,51,51,0.5);
-      color:white;
-      box-shadow: 0 12px 30px rgba(255,51,51,0.2);
+    .tab-btn.active {
+      background: #ff3333;
+      border-color: rgba(255, 51, 51, 0.5);
+      color: white;
+      box-shadow: 0 12px 30px rgba(255, 51, 51, 0.2);
     }
 
-    .card{
-      width:100%;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
+    .card {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 20px;
       padding: 26px;
       backdrop-filter: blur(10px);
       animation: fadeIn 0.6s ease backwards;
-      overflow:hidden;
+      overflow: hidden;
     }
 
-    .section-title{
-      width:100%;
-      font-size:18px;
-      font-weight:800;
-      margin:0 0 18px 0;
-      padding-bottom:10px;
-      border-bottom:2px solid rgba(255,255,255,0.08);
-      color:#ff3333;
-      text-transform:uppercase;
-      letter-spacing:2px;
+    .section-title {
+      width: 100%;
+      font-size: 18px;
+      font-weight: 800;
+      margin: 0 0 18px 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+      color: #ff3333;
+      text-transform: uppercase;
+      letter-spacing: 2px;
     }
 
-    .hint{
+    .hint {
       font-size: 13px;
       opacity: 0.75;
       margin-top: -10px;
       margin-bottom: 18px;
     }
 
-    label{ display:block; font-size:14px; opacity:.85; margin-bottom:8px; }
+    label {
+      display: block;
+      font-size: 14px;
+      opacity: .85;
+      margin-bottom: 8px;
+    }
 
-    input{
-      width:100%;
-      padding:14px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.12);
-      background: rgba(0,0,0,0.35);
-      color:white;
-      outline:none;
-      font-size:15px;
-      transition:0.2s;
+    input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.35);
+      color: white;
+      outline: none;
+      font-size: 15px;
+      transition: 0.2s;
       box-sizing: border-box;
     }
 
-    input:focus{
-      border-color: rgba(255,51,51,0.6);
-      box-shadow: 0 0 0 4px rgba(255,51,51,0.12);
+    input:focus {
+      border-color: rgba(255, 51, 51, 0.6);
+      box-shadow: 0 0 0 4px rgba(255, 51, 51, 0.12);
     }
 
-    button{
-      padding:14px 16px;
-      border:none;
-      border-radius:16px;
-      cursor:pointer;
-      font-weight:800;
-      font-size:14px;
-      transition:0.2s;
+    button {
+      padding: 14px 16px;
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 14px;
+      transition: 0.2s;
     }
 
-    button:disabled{
-      opacity:0.6;
-      cursor:not-allowed;
-      transform:none !important;
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
     }
 
-    .primary{
-      width:100%;
-      margin-top:14px;
-      background:#ff3333;
-      color:white;
+    .primary {
+      width: 100%;
+      margin-top: 14px;
+      background: #ff3333;
+      color: white;
     }
 
-    .primary:hover{
-      background:#ff4b4b;
+    .primary:hover {
+      background: #ff4b4b;
       transform: translateY(-2px);
-      box-shadow: 0 12px 30px rgba(255,51,51,0.25);
+      box-shadow: 0 12px 30px rgba(255, 51, 51, 0.25);
     }
 
-    .status{
-      margin-top:18px;
-      margin-bottom:18px;
-      background: rgba(0,0,0,0.35);
-      border:1px solid rgba(255,255,255,0.12);
-      border-radius:16px;
-      padding:14px;
-      font-size:14px;
-      line-height:1.5;
-      white-space:pre-wrap;
-      max-height:240px;
-      overflow:auto;
+    .status {
+      margin-top: 18px;
+      margin-bottom: 18px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 14px;
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      max-height: 240px;
+      overflow: auto;
     }
 
-    .badge{
-      display:inline-block;
-      font-size:12px;
-      padding:6px 10px;
-      border-radius:999px;
-      margin-bottom:10px;
-      font-weight:800;
-      text-transform:uppercase;
-      letter-spacing:1px;
+    .badge {
+      display: inline-block;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
-    .badge.warn{ background: rgba(255,204,0,0.12); border:1px solid rgba(255,204,0,0.22); color:#ffd35a; }
-    .badge.ok{ background: rgba(0,255,127,0.15); border:1px solid rgba(0,255,127,0.25); color:#7cffb7; }
-    .badge.err{ background: rgba(255,51,51,0.12); border:1px solid rgba(255,51,51,0.28); color:#ff6b6b; }
+    .badge.warn {
+      background: rgba(255, 204, 0, 0.12);
+      border: 1px solid rgba(255, 204, 0, 0.22);
+      color: #ffd35a;
+    }
 
-    .outfits{
-      display:grid;
+    .badge.ok {
+      background: rgba(0, 255, 127, 0.15);
+      border: 1px solid rgba(0, 255, 127, 0.25);
+      color: #7cffb7;
+    }
+
+    .badge.err {
+      background: rgba(255, 51, 51, 0.12);
+      border: 1px solid rgba(255, 51, 51, 0.28);
+      color: #ff6b6b;
+    }
+
+    .outfits {
+      display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 16px;
     }
 
-    .outfit-btn{
-      text-align:left;
-      padding:16px;
-      border-radius:20px;
-      background: rgba(255,255,255,0.05);
-      border:1px solid rgba(255,255,255,0.12);
-      color:white;
-      transition:0.2s;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      overflow:hidden;
+    .outfit-btn {
+      text-align: left;
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: white;
+      transition: 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: hidden;
     }
 
-    .outfit-btn:hover{
-      background: rgba(255,255,255,0.09);
+    .outfit-btn:hover {
+      background: rgba(255, 255, 255, 0.09);
       transform: translateY(-4px);
-      border-color: rgba(255,255,255,0.18);
+      border-color: rgba(255, 255, 255, 0.18);
     }
 
-    .outfit-thumb-wrap{
+    .outfit-thumb-wrap {
       position: relative;
       width: 100%;
     }
 
-    .outfit-thumb{
-      width:100%;
+    .outfit-thumb {
+      width: 100%;
       aspect-ratio: 1 / 1;
-      border-radius:18px;
-      object-fit:cover;
-      border:1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.05);
+      border-radius: 18px;
+      object-fit: cover;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
     }
 
-    .outfit-name{
-      font-size:16px;
-      font-weight:900;
-      margin:0;
-      line-height:1.2;
-      overflow:hidden;
+    .outfit-name {
+      font-size: 16px;
+      font-weight: 900;
+      margin: 0;
+      line-height: 1.2;
+      overflow: hidden;
       text-overflow: ellipsis;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
     }
 
-    .outfit-id{
-      font-size:12px;
-      opacity:0.65;
-      margin-top:6px;
+    .outfit-id {
+      font-size: 12px;
+      opacity: 0.65;
+      margin-top: 6px;
     }
 
-    .hidden{ display:none; }
+    .hidden {
+      display: none;
+    }
 
-    .outfit-loading-overlay{
+    .outfit-loading-overlay {
       position: absolute;
       inset: 0;
       border-radius: 18px;
-      background: rgba(0,0,0,0.45);
+      background: rgba(0, 0, 0, 0.45);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -265,36 +299,55 @@
       transition: opacity 0.2s ease;
     }
 
-    .outfit-btn.is-loading .outfit-loading-overlay{
+    .outfit-btn.is-loading .outfit-loading-overlay {
       opacity: 1;
     }
 
-    .spinner{
+    .spinner {
       width: 44px;
       height: 44px;
       border-radius: 999px;
-      border: 4px solid rgba(255,255,255,0.25);
+      border: 4px solid rgba(255, 255, 255, 0.25);
       border-top-color: #ff3333;
       animation: spin 0.9s linear infinite;
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
 
     @keyframes fadeInDown {
-      from { opacity:0; transform: translateY(-20px); }
-      to { opacity:1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     @keyframes fadeIn {
-      from { opacity:0; transform: translateY(10px); }
-      to { opacity:1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
   </style>
 </head>
 
 <body>
   <div class="bg-container">
-    <img class="bg" src="https://img.freepik.com/free-vector/circles-background-dark-tones_60389-166.jpg" alt="Background">
+    <img class="bg" src="https://img.freepik.com/free-vector/circles-background-dark-tones_60389-166.jpg"
+      alt="Background">
   </div>
 
   <div class="container">
@@ -347,17 +400,22 @@
     </div>
   </div>
 
-  <div class="container" style="padding-top:0;">
-    <div class="card" style="text-align:center; padding:18px;">
-      <div style="font-size:14px; opacity:0.65; margin-bottom:6px;">
-        made by <a href="https://x.com/vis3d_" target="_blank" style="color:#ff3333; text-decoration:none; font-weight:800;">@Viswa</a>
+  <div class="container" style="padding-top:0; padding-bottom: 30px; align-items: center;">
+    <div class="card"
+      style="width: auto; padding: 10px 24px; border-radius: 99px; backdrop-filter: blur(12px); display: flex; gap: 20px; align-items: center; border-color: rgba(255,255,255,0.15);">
+      <div style="font-size:13px; opacity:0.8; font-weight: 500; letter-spacing:0.3px;">
+        Made by <a href="https://x.com/vis3d_" target="_blank"
+          style="color:#ff3333; text-decoration:none; font-weight:800;">@Viswa</a>
       </div>
-      <div style="font-size:13px; opacity:0.5;">
-        Inspired by <a href="https://supers.lol/Avis" target="_blank" style="color:white; text-decoration:none; border-bottom:1px solid rgba(255,255,255,0.3);">Avis</a>
+      <div style="width: 1px; height: 14px; background: rgba(255,255,255,0.12);"></div>
+      <div style="font-size:13px; opacity:0.8; font-weight: 500; letter-spacing:0.3px;">
+        Inspired by <a href="https://supers.lol/Avis" target="_blank"
+          style="color:#ff3333; text-decoration:none; font-weight:800;">Avis</a>
       </div>
     </div>
   </div>
 
   <script src="./script.js"></script>
 </body>
+
 </html>
