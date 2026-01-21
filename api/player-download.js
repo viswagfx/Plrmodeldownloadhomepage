@@ -51,7 +51,7 @@ async function fetchArrayBufferWithRetry(url, tries = 5) {
 }
 
 function safeFileName(name) {
-  return String(name || "Outfit").replace(/[^a-z0-9]/gi, "_").slice(0, 60);
+  return String(name || "User").replace(/[^a-z0-9]/gi, "_").slice(0, 60);
 }
 
 export default async function handler(req, res) {
@@ -63,23 +63,23 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   try {
-    const outfitId = String(req.body?.outfitId || "").trim();
-    const outfitName = String(req.body?.outfitName || "Outfit").trim();
+    const userId = String(req.body?.userId || "").trim();
+    const username = String(req.body?.username || "User").trim();
 
-    if (!/^\d+$/.test(outfitId)) {
-      return res.status(400).json({ error: "Invalid outfitId" });
+    if (!/^\d+$/.test(userId)) {
+      return res.status(400).json({ error: "Invalid userId" });
     }
 
-    // 1) Get 3D data
-    const thumbUrl = `https://thumbnails.roproxy.com/v1/users/outfit-3d?outfitId=${outfitId}`;
+    // 1) Get 3D data for USER AVATAR
+    const thumbUrl = `https://thumbnails.roproxy.com/v1/users/avatar-3d?userId=${userId}`;
     const thumbJson = JSON.parse(await fetchTextWithRetry(thumbUrl));
 
     let entry = null;
     if (Array.isArray(thumbJson.data) && thumbJson.data.length) entry = thumbJson.data[0];
-    else if (thumbJson.imageUrl) entry = thumbJson;
+    else if (thumbJson.imageUrl || thumbJson.targetId) entry = thumbJson;
 
     if (!entry?.imageUrl) {
-      return res.status(404).json({ error: "No 3D data available for this outfit" });
+      return res.status(404).json({ error: "No 3D data available for this user" });
     }
 
     const imageJson = JSON.parse(await fetchTextWithRetry(entry.imageUrl));
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
 
     // 2) Build zip
     const zip = new JSZip();
-    const baseName = `Outfit_${outfitId}_${safeFileName(outfitName)}`;
+    const baseName = `User_${userId}_${safeFileName(username)}`;
 
     // MTL + textures
     if (mtl) {
