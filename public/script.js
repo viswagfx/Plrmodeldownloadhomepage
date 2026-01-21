@@ -61,7 +61,7 @@ function cleanUsername(name) {
 async function warmUpOutfitApi() {
   try {
     await fetch("/api/outfit-download", { method: "OPTIONS" });
-  } catch {}
+  } catch { }
 }
 
 // ======================
@@ -111,7 +111,7 @@ async function usernameToUserId(username) {
     try {
       const j = await r.json();
       msg = j?.error || j?.details || msg;
-    } catch {}
+    } catch { }
     throw new Error(msg);
   }
 
@@ -145,7 +145,7 @@ async function downloadCurrentAvatarZip(username) {
       try {
         const t = await r.text();
         if (t) msg = t.slice(0, 200);
-      } catch {}
+      } catch { }
     }
     throw new Error(msg);
   }
@@ -318,7 +318,7 @@ async function downloadOutfit(outfit) {
           try {
             const t = await r.text();
             if (t) msg = t.slice(0, 200);
-          } catch {}
+          } catch { }
         }
 
         throw new Error(msg);
