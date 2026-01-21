@@ -79,7 +79,7 @@ export default async function handler(req, res) {
     else if (thumbJson.imageUrl) entry = thumbJson;
 
     if (!entry?.imageUrl) {
-      return res.status(404).json({ error: "No 3D data available for this outfit" });
+      return res.status(404).json({ error: "One or more accessories have been moderated in this outfit" });
     }
 
     const imageJson = JSON.parse(await fetchTextWithRetry(entry.imageUrl));
