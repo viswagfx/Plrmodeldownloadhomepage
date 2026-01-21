@@ -61,6 +61,10 @@ function cleanUsername(name) {
   return String(name || "").trim();
 }
 
+function safeFileName(name) {
+  return String(name || "Outfit").replace(/[^a-z0-9]/gi, "_").slice(0, 50);
+}
+
 // ======================
 // Warm-up (fix Vercel cold-start 404)
 // ======================
