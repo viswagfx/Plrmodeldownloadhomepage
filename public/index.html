@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;900&display=swap" rel="stylesheet">
@@ -342,6 +343,75 @@
       }
     }
 
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .secondary.active {
+      background: white;
+      color: black;
+      border-color: white;
+    }
+
+    .outfit-btn.selection-mode {
+      cursor: pointer;
+    }
+
+    .outfit-btn.selected {
+      border-color: #7cffb7;
+      background: rgba(124, 255, 183, 0.1);
+      box-shadow: 0 0 0 2px rgba(124, 255, 183, 0.3);
+    }
+
+    .check-indicator {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      opacity: 0;
+      transform: scale(0.8);
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .selection-active .check-indicator {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .outfit-btn.selected .check-indicator {
+      background: #7cffb7;
+      border-color: #7cffb7;
+      color: black;
+    }
+
+    .outfit-btn.selected .check-indicator::after {
+      content: "✓";
+      font-weight: 900;
+      font-size: 14px;
+    }
+
     .credit-link {
       color: #ff3333;
       text-decoration: none;
@@ -400,7 +470,12 @@
         <label for="outfitUsernameInput">Roblox Username</label>
         <input id="outfitUsernameInput" placeholder="example: Builderman" />
 
-        <button id="loadBtn" class="primary">Load Outfits</button>
+        <div class="actions-row">
+          <button id="loadBtn" class="primary" style="margin-top:0; flex: 1;">Load Outfits</button>
+          <button id="selectBtn" class="secondary" style="margin-top:0; display:none;">Select</button>
+          <button id="downloadAllBtn" class="primary"
+            style="margin-top:0; display:none; background:#2ecc71; border:none;">Download (0)</button>
+        </div>
 
         <!-- ✅ outfits status ABOVE grid -->
         <div class="status" id="statusOutfits">

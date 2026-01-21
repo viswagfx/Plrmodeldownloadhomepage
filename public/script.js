@@ -21,12 +21,18 @@ const downloadCurrentBtn = document.getElementById("downloadCurrentBtn");
 const outfitUsernameInput = document.getElementById("outfitUsernameInput");
 const loadBtn = document.getElementById("loadBtn");
 const outfitsGrid = document.getElementById("outfitsGrid");
+const selectBtn = document.getElementById("selectBtn");
+const downloadAllBtn = document.getElementById("downloadAllBtn");
 
 const FALLBACK_THUMB =
   "https://tr.rbxcdn.com/30DAY-AvatarHeadshot-Png/420/420/AvatarHeadshot/Png/noFilter";
 
 // prevent spam clicks while downloading an outfit
 let outfitDownloadBusy = false;
+
+// Selection Mode
+let isSelectionMode = false;
+const selectedOutfits = new Set(); // Stores outfit IDs
 
 // ======================
 // Helpers
@@ -265,17 +271,14 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function downloadOutfit(outfit) {
+// ======================
+// Helper: Fetch Outfit ZIP Blob
+// ======================
+async function fetchOutfitBlob(outfit) {
   const maxTries = 4;
 
   for (let attempt = 1; attempt <= maxTries; attempt++) {
     try {
-      setStatus(
-        "warn",
-        attempt === 1 ? "Downloading" : "Retrying",
-        `Building ZIP...\n${outfit.name} (${outfit.id})\nAttempt: ${attempt}/${maxTries}`
-      );
-
       const r = await fetch("/api/outfit-download", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -287,30 +290,24 @@ async function downloadOutfit(outfit) {
 
       // ✅ Vercel cold-start / routing delay -> retry
       if (r.status === 404 && attempt < maxTries) {
-        setStatus(
-          "warn",
-          "Warming up server",
-          `Outfit API not ready yet (404)\nRetrying... (${attempt}/${maxTries})`
-        );
+        if (!isSelectionMode) { // Only show specific status if single download
+          setStatus("warn", "Warming up server", `Outfit API not ready yet (404)\nRetrying... (${attempt}/${maxTries})`);
+        }
         await sleep(800 * attempt);
         continue;
       }
 
       // ✅ rate limited -> retry
       if (r.status === 429 && attempt < maxTries) {
-        setStatus(
-          "warn",
-          "Rate Limited",
-          `Got 429 too many requests\nRetrying... (${attempt}/${maxTries})`
-        );
+        if (!isSelectionMode) {
+          setStatus("warn", "Rate Limited", `Got 429 too many requests\nRetrying... (${attempt}/${maxTries})`);
+        }
         await sleep(1200 * attempt);
         continue;
       }
 
-      // ❌ other errors -> show message (no auto retry unless you want)
       if (!r.ok) {
         let msg = `Download failed (HTTP ${r.status})`;
-
         try {
           const j = await r.json();
           msg = j?.error || j?.details || msg;
@@ -320,41 +317,38 @@ async function downloadOutfit(outfit) {
             if (t) msg = t.slice(0, 200);
           } catch { }
         }
-
         throw new Error(msg);
       }
 
-      // ✅ success -> download zip
-      const blob = await r.blob();
-      const fileName = `Outfit_${outfit.id}.zip`;
-
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
-
-      setStatus("ok", "Started", `Download started:\n${fileName}`);
-      return;
+      return await r.blob();
     } catch (e) {
-      // ✅ retry for network/cold errors
       if (attempt < maxTries) {
-        setStatus(
-          "warn",
-          "Retrying",
-          `${e.message}\nRetrying... (${attempt}/${maxTries})`
-        );
+        if (!isSelectionMode) {
+          setStatus("warn", "Retrying", `${e.message}\nRetrying... (${attempt}/${maxTries})`);
+        }
         await sleep(800 * attempt);
         continue;
       }
-
-      // ❌ final fail
       throw e;
     }
   }
+}
+
+async function downloadOutfit(outfit) {
+  setStatus("warn", "Downloading", `Building ZIP...\n${outfit.name} (${outfit.id})`);
+
+  const blob = await fetchOutfitBlob(outfit);
+  const fileName = `Outfit_${outfit.id}.zip`;
+
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
+  setStatus("ok", "Started", `Download started:\n${fileName}`);
 }
 
 // ======================
@@ -375,6 +369,7 @@ async function renderOutfits(outfits) {
     btn.innerHTML = `
       <div class="outfit-thumb-wrap">
         <img class="outfit-thumb" src="${FALLBACK_THUMB}" alt="">
+        <div class="check-indicator"></div>
         <div class="outfit-loading-overlay">
           <div class="spinner"></div>
         </div>
@@ -387,6 +382,21 @@ async function renderOutfits(outfits) {
     `;
 
     btn.addEventListener("click", async () => {
+      // ✅ Selection Mode Logic
+      if (isSelectionMode) {
+        const id = outfit.id;
+        if (selectedOutfits.has(id)) {
+          selectedOutfits.delete(id);
+          btn.classList.remove("selected");
+        } else {
+          selectedOutfits.add(id);
+          btn.classList.add("selected");
+        }
+        updateDownloadAllBtn();
+        return;
+      }
+
+      // ✅ Normal Download Click
       if (outfitDownloadBusy) return;
       outfitDownloadBusy = true;
 
@@ -426,7 +436,126 @@ async function renderOutfits(outfits) {
   });
 
   setStatus("ok", "Ready", `Outfits ready: ${outfits.length}`);
+
+  // Show "Select" button if we have outfits
+  if (outfits.length > 0) {
+    selectBtn.style.display = "block";
+  }
 }
+
+// ======================
+// Selection & Bulk Download
+// ======================
+function updateDownloadAllBtn() {
+  const count = selectedOutfits.size;
+  downloadAllBtn.textContent = `Download (${count})`;
+  downloadAllBtn.style.display = isSelectionMode ? "block" : "none";
+}
+
+selectBtn.addEventListener("click", () => {
+  isSelectionMode = !isSelectionMode;
+
+  if (isSelectionMode) {
+    selectBtn.textContent = "Cancel";
+    outfitsGrid.classList.add("selection-active");
+    // enable selection mode on all buttons
+    outfitsGrid.querySelectorAll(".outfit-btn").forEach(b => b.classList.add("selection-mode"));
+    updateDownloadAllBtn();
+  } else {
+    // Cancel mode
+    selectBtn.textContent = "Select";
+    outfitsGrid.classList.remove("selection-active");
+    selectedOutfits.clear();
+    outfitsGrid.querySelectorAll(".outfit-btn").forEach(b => {
+      b.classList.remove("selection-mode", "selected");
+    });
+    updateDownloadAllBtn();
+    setStatus("ok", "Cancelled", "Selection cleared.");
+  }
+});
+
+downloadAllBtn.addEventListener("click", async () => {
+  if (selectedOutfits.size === 0) return;
+  if (outfitDownloadBusy) return;
+
+  outfitDownloadBusy = true;
+  downloadAllBtn.disabled = true;
+  selectBtn.disabled = true;
+  loadBtn.disabled = true;
+
+  try {
+    setStatus("warn", "Preparing", `Starting bulk download for ${selectedOutfits.size} outfits...`);
+
+    // 1. Gather selected outfit objects (we need names)
+    // We can find them from the grid buttons or just store them. 
+    // Easier to just grab from DOM or re-fetch? 
+    // Let's grab name from DOM since we didn't store the full objects.
+    const tasks = [];
+    const buttons = outfitsGrid.querySelectorAll(".outfit-btn.selected");
+
+    buttons.forEach(btn => {
+      const id = btn.dataset.outfitId;
+      const name = btn.querySelector(".outfit-name").innerText;
+      tasks.push({ id, name });
+    });
+
+    // 2. Init JSZip
+    const masterZip = new JSZip();
+
+    // 3. Process sequentially or parallel? 
+    // Parallel might rate limit. Let's do batches of 3.
+    const BATCH_SIZE = 3;
+    let completed = 0;
+
+    for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
+      const chunk = tasks.slice(i, i + BATCH_SIZE);
+      await Promise.all(chunk.map(async (task) => {
+        try {
+          const blob = await fetchOutfitBlob(task);
+          const cleanName = safeFileName(task.name); // we need safeFileName logic or just strip
+          const safeName = task.name.replace(/[^a-z0-9]/gi, "_").slice(0, 50);
+          masterZip.file(`Outfit_${task.id}_${safeName}.zip`, blob);
+        } catch (e) {
+          console.error(`Failed to download ${task.name}:`, e);
+          masterZip.file(`FAILED_${task.id}.txt`, `Error: ${e.message}`);
+        }
+        completed++;
+        setStatus("warn", "Downloading", `Progress: ${completed}/${tasks.length}\n(Building Master ZIP)`);
+      }));
+    }
+
+    // 4. Generate Master ZIP
+    setStatus("warn", "Zipping", "Compressing final bundle...");
+    const content = await masterZip.generateAsync({ type: "blob" });
+    const bundleName = `Outfits_Bundle_${Date.now()}.zip`;
+
+    // 5. Download
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(content);
+    a.download = bundleName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
+
+    // 6. Reset
+    setStatus("ok", "Done", `Downloaded ${tasks.length} outfits in\n${bundleName}`);
+
+    // Optional: Turn off selection mode? Or keep it?
+    // Let's keep it but clear selection logic if desired. 
+    // For now, let's leave mode on but maybe clear selection?
+    // User probably wants to clear.
+    selectBtn.click(); // Toggle off
+
+  } catch (e) {
+    setStatus("err", "Error", "Bulk download failed:\n" + e.message);
+  } finally {
+    outfitDownloadBusy = false;
+    downloadAllBtn.disabled = false;
+    selectBtn.disabled = false;
+    loadBtn.disabled = false;
+  }
+});
 
 
 // ======================
