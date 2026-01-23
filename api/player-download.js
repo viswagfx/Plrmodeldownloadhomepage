@@ -1,4 +1,5 @@
 import JSZip from "jszip";
+import { checkRateLimit, getIp } from "./lib/rate-limit.js";
 
 function getHashUrl(hash, type = "t") {
   let st = 31;
@@ -10,10 +11,11 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function fetchTextWithRetry(url, tries = 5) {
+async function fetchTextWithRetry(url, getOptions = {}) {
+  const tries = 5;
   for (let attempt = 0; attempt < tries; attempt++) {
     try {
-      const r = await fetch(url);
+      const r = await fetch(url, getOptions);
 
       if (r.status === 429) {
         await sleep(800 * (attempt + 1));
@@ -30,10 +32,11 @@ async function fetchTextWithRetry(url, tries = 5) {
   }
 }
 
-async function fetchArrayBufferWithRetry(url, tries = 5) {
+async function fetchArrayBufferWithRetry(url, getOptions = {}) {
+  const tries = 5;
   for (let attempt = 0; attempt < tries; attempt++) {
     try {
-      const r = await fetch(url);
+      const r = await fetch(url, getOptions);
 
       if (r.status === 429) {
         await sleep(800 * (attempt + 1));
@@ -62,6 +65,26 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
+  // Rate Limit Check
+  if (!checkRateLimit(req)) {
+    return res.status(429).json({ error: "Too many requests. Please try again in a minute." });
+  }
+
+  // Forward User IP
+  let clientIp = "unknown";
+  try {
+    clientIp = getIp(req);
+  } catch (e) {
+    console.error("Failed to get IP:", e);
+  }
+
+  const forwardHeaders = {
+    headers: {
+      "X-Forwarded-For": clientIp,
+      "Roblox-Id": "true"
+    }
+  };
+
   try {
     const userId = String(req.body?.userId || "").trim();
     const username = String(req.body?.username || "User").trim();
@@ -72,7 +95,7 @@ export default async function handler(req, res) {
 
     // 1) Get 3D data for USER AVATAR
     const thumbUrl = `https://thumbnails.roproxy.com/v1/users/avatar-3d?userId=${userId}`;
-    const thumbJson = JSON.parse(await fetchTextWithRetry(thumbUrl));
+    const thumbJson = JSON.parse(await fetchTextWithRetry(thumbUrl, forwardHeaders));
 
     let entry = null;
     if (Array.isArray(thumbJson.data) && thumbJson.data.length) entry = thumbJson.data[0];
@@ -82,7 +105,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: "No 3D data available for this user" });
     }
 
-    const imageJson = JSON.parse(await fetchTextWithRetry(entry.imageUrl));
+    const imageJson = JSON.parse(await fetchTextWithRetry(entry.imageUrl, forwardHeaders));
     const { obj, mtl, textures } = imageJson;
 
     if (!obj && !mtl && !textures) {
@@ -95,7 +118,7 @@ export default async function handler(req, res) {
 
     // MTL + textures
     if (mtl) {
-      const mtlText = await fetchTextWithRetry(getHashUrl(mtl));
+      const mtlText = await fetchTextWithRetry(getHashUrl(mtl), forwardHeaders);
       const textureFiles = Array.isArray(textures) ? textures : [];
 
       let replacedMtl = mtlText;
@@ -112,14 +135,14 @@ export default async function handler(req, res) {
       zip.file(`${baseName}.mtl`, replacedMtl);
 
       for (const t of texEntries) {
-        const ab = await fetchArrayBufferWithRetry(t.url);
+        const ab = await fetchArrayBufferWithRetry(t.url, forwardHeaders);
         zip.file(t.filename, ab);
       }
     }
 
     // OBJ
     if (obj) {
-      const objText = await fetchTextWithRetry(getHashUrl(obj));
+      const objText = await fetchTextWithRetry(getHashUrl(obj), forwardHeaders);
       zip.file(`${baseName}.obj`, objText);
     }
 
